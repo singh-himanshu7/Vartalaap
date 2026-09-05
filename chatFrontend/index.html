@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vartalaap - Modern Real-Time Chat</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-viewport">
+        <!-- Toast Container for Notifications -->
+        <div id="toast-container" class="toast-container"></div>
+
+        <!-- Room Join/Create Modal Overlay -->
+        <div id="modal-overlay" class="modal-overlay" onclick="handleOverlayClick(event)">
+            <div class="modal-card">
+                <button id="modal-close-btn" class="modal-close-btn hidden" type="button" onclick="closeJoinModal()" title="Close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <div class="brand-header">
+                    <div class="logo-icon">
+                        <i class="fa-solid fa-comments"></i>
+                    </div>
+                    <h1>Vartalaap</h1>
+                    <p class="brand-subtitle">Real-time WebSockets Chat</p>
+                </div>
+
+                <!-- Modal Tabs -->
+                <div class="tab-buttons">
+                    <button id="tab-join-btn" class="tab-btn active" type="button" onclick="switchTab('join')">
+                        <i class="fa-solid fa-right-to-bracket"></i> Join Room
+                    </button>
+                    <button id="tab-create-btn" class="tab-btn" type="button" onclick="switchTab('create')">
+                        <i class="fa-solid fa-plus-circle"></i> Create Room
+                    </button>
+                </div>
+
+                <!-- Join Room Form -->
+                <form id="join-room-form" class="form-content active" onsubmit="handleJoinRoom(event)">
+                    <div class="input-group">
+                        <label for="join-username">Your Nickname</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-user"></i>
+                            <input type="text" id="join-username" placeholder="e.g. Himanshu" required autocomplete="off">
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="join-room-id">Room ID</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-hashtag"></i>
+                            <input type="text" id="join-room-id" placeholder="e.g. web-design" required autocomplete="off">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="join-submit-btn">
+                        <span>Enter Room</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </form>
+
+                <!-- Create Room Form -->
+                <form id="create-room-form" class="form-content" onsubmit="handleCreateRoom(event)">
+                    <div class="input-group">
+                        <label for="create-username">Your Nickname</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-user"></i>
+                            <input type="text" id="create-username" placeholder="e.g. Himanshu" required autocomplete="off">
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="label-with-action">
+                            <label for="create-room-id">New Room ID</label>
+                            <button type="button" class="text-action-btn" onclick="generateRandomRoomId(event)">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Random
+                            </button>
+                        </div>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-hashtag"></i>
+                            <input type="text" id="create-room-id" placeholder="e.g. web-design" required autocomplete="off">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="submit-btn create-variant" id="create-submit-btn">
+                        <span>Create & Join Room</span>
+                        <i class="fa-solid fa-sparkles"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Main Chat Dashboard Window -->
+        <div id="chat-dashboard" class="chat-dashboard hidden">
+            <!-- 1. Left Vertical Navigation Rail (Coral Gradient) -->
+            <nav class="nav-rail">
+                <div class="rail-top">
+                    <div class="user-avatar-badge" id="rail-user-avatar" title="Your Profile">
+                        <span id="rail-avatar-initials">U</span>
+                    </div>
+                </div>
+
+                <div class="rail-menu">
+                    <button class="rail-item active" title="Chats" type="button">
+                        <i class="fa-regular fa-comment-dots"></i>
+                    </button>
+                    <button class="rail-item" title="Groups & People" type="button" onclick="openJoinModal()">
+                        <i class="fa-solid fa-user-group"></i>
+                    </button>
+                    <button class="rail-item" title="Favorites" type="button">
+                        <i class="fa-regular fa-star"></i>
+                    </button>
+                </div>
+
+                <div class="rail-bottom">
+                    <!-- Status Indicator Dot -->
+                    <div id="status-badge" class="rail-status status-disconnected" title="Disconnected">
+                        <span class="status-dot"></span>
+                    </div>
+                    <button class="rail-item" title="Settings" type="button" onclick="openSettingsModal()">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+                </div>
+            </nav>
+
+            <!-- 2. Middle Conversations List Sidebar -->
+            <aside class="sidebar-conversations">
+                <div class="sidebar-header">
+                    <button class="add-room-btn" type="button" onclick="openJoinModal()" title="New Chat / Join Room">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                    <div class="search-box">
+                        <input type="text" id="search-conversations" placeholder="Search" onkeyup="filterConversations()">
+                    </div>
+                </div>
+
+                <!-- List of active & demo chat rooms -->
+                <div class="conversation-list" id="conversation-list">
+                    <!-- Dynamic chat items rendered via JS -->
+                </div>
+            </aside>
+
+            <!-- 3. Right Active Chat Area -->
+            <main class="chat-main">
+                <!-- Chat Top Bar -->
+                <header class="chat-header">
+                    <div class="chat-title-group">
+                        <h2 id="current-room-name">Web Design Chat</h2>
+                        <i class="fa-solid fa-chevron-down dropdown-icon"></i>
+                    </div>
+
+                    <div class="chat-header-actions">
+                        <span id="status-text" class="status-text">Disconnected</span>
+                        <button class="header-action-btn" onclick="copyRoomId()" title="Copy Room ID">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                        <button class="header-action-btn leave-action" onclick="leaveRoom()" title="Leave Room">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                        </button>
+                    </div>
+                </header>
+
+                <!-- Scrollable Messages Container -->
+                <div id="messages-container" class="messages-container">
+                    <div id="empty-state" class="empty-state">
+                        <div class="empty-icon">
+                            <i class="fa-regular fa-paper-plane"></i>
+                        </div>
+                        <h3>Welcome to <span id="welcome-room-name">the Room</span>!</h3>
+                        <p>No messages yet. Send a message to start the conversation.</p>
+                    </div>
+                </div>
+
+                <!-- Chat Bottom Footer Input Bar -->
+                <footer class="chat-footer">
+                    <form id="chat-input-form" onsubmit="handleSendMessage(event)">
+                        <button type="button" class="attachment-btn" title="Attach file" onclick="showToast('Attachments coming soon!', 'info')">
+                            <i class="fa-solid fa-paperclip"></i>
+                        </button>
+
+                        <div class="input-pill-wrapper">
+                            <input 
+                                type="text" 
+                                id="message-input" 
+                                placeholder="Write a message..." 
+                                autocomplete="off"
+                                required
+                            >
+                            <div class="emoji-picker-wrapper">
+                                <button type="button" class="emoji-btn" title="Choose emoji" onclick="toggleEmojiPicker(event)">
+                                    <i class="fa-regular fa-face-smile"></i>
+                                </button>
+                                <!-- Emoji Popover -->
+                                <div id="emoji-picker" class="emoji-picker hidden" onclick="event.stopPropagation()">
+                                    <div class="emoji-picker-header">
+                                        <span>Emojis</span>
+                                        <button type="button" class="emoji-close-btn" onclick="toggleEmojiPicker(event)">&times;</button>
+                                    </div>
+                                    <div id="emoji-grid" class="emoji-grid"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" id="send-btn" class="send-action-btn" title="Send message">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </footer>
+            </main>
+        </div>
+    </div>
+
+    <!-- SockJS and STOMP Libraries via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+    <!-- Application Scripts -->
+    <script src="js/websocket.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
